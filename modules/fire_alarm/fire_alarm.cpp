@@ -120,8 +120,7 @@ static void fireAlarmActivationUpdate()
 static void fireAlarmDeactivationUpdate()
 {
     if ( sirenStateRead() ) {
-        if ( codeMatchFrom(CODE_KEYPAD) ||
-             codeMatchFrom(CODE_PC_SERIAL) ) {
+        if ( codeMatchFrom(CODE_PC_SERIAL) ) {
             fireAlarmDeactivate();
         }
     }

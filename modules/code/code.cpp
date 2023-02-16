@@ -5,12 +5,14 @@
 
 #include "code.h"
 
+#include "servo_motor.h"
 #include "user_interface.h"
 #include "pc_serial_com.h"
 #include "date_and_time.h"
 #include "temperature_sensor.h"
 #include "gas_sensor.h"
 #include "matrix_keypad.h"
+#include "display.h"
 
 //=====[Declaration of private defines]========================================
 
@@ -25,13 +27,16 @@ extern char codeSequenceFromPcSerialCom[CODE_NUMBER_OF_KEYS];
 
 //=====[Declaration and initialization of private global variables]============
 
-static int numberOfIncorrectCodes = 0;
-static char codeSequence[CODE_NUMBER_OF_KEYS] = { '1', '8', '0', '5' };
+static int numberOfIncorrectCodesAlarm = 0;
+static int numberOfIncorrectCodesGate = 0;
+static char codeSequenceAlarm[CODE_NUMBER_OF_KEYS] = { '1', '8', '0', '5' };
+static char codeSequenceGate[CODE_NUMBER_OF_KEYS] = { '1', '1', '1', '1' };
 
 //=====[Declarations (prototypes) of private functions]========================
 
-static bool codeMatch( char* codeToCompare );
-static void codeDeactivate();
+static bool codeMatchAlarm( char* codeToCompare );
+static bool codeMatchGate( char* codeToCompare );
+static void codeDeactivateAlarm();
 
 //=====[Implementations of public functions]===================================
 
@@ -39,7 +44,7 @@ void codeWrite( char* newCodeSequence )
 {
     int i;
     for (i = 0; i < CODE_NUMBER_OF_KEYS; i++) {
-        codeSequence[i] = newCodeSequence[i];
+        codeSequenceAlarm[i] = newCodeSequence[i];
     }
 }
 
@@ -49,28 +54,42 @@ bool codeMatchFrom( codeOrigin_t codeOrigin )
     switch (codeOrigin) {
         case CODE_KEYPAD:
             if( userInterfaceCodeCompleteRead() ) {
-                codeIsCorrect = codeMatch(codeSequenceFromUserInterface);
+                codeIsCorrect = codeMatchGate(codeSequenceFromUserInterface);
                 userInterfaceCodeCompleteWrite(false);
-                if ( codeIsCorrect ) {
-                    codeDeactivate();
-                } else {
-                    incorrectCodeStateWrite(ON);
-                    numberOfIncorrectCodes++;
+                if(numberOfIncorrectCodesGate >= 3){
+                    displayCharPositionWrite (0,1);
+                    displayStringWrite ("Locked out!");
                 }
+                else if ( codeIsCorrect && numberOfIncorrectCodesGate < 3) {
+                    displayCharPositionWrite (0,1);
+                    displayStringWrite ("Correct Code!");
+                    gateOpen();
+                    gateClose();
+                    resetScreen();
+                    numberOfIncorrectCodesGate = 0;
+                } 
+                else{
+                    displayCharPositionWrite (0,1);
+                    displayStringWrite ("Incorrect Code!");                    
+                    numberOfIncorrectCodesGate++;
+                    delay(3000);
+                    resetScreen();
+                }
+                
+                
             }
-
 
         break;
         case CODE_PC_SERIAL:
             if( pcSerialComCodeCompleteRead() ) {
-                codeIsCorrect = codeMatch(codeSequenceFromPcSerialCom);
+                codeIsCorrect = codeMatchAlarm(codeSequenceFromPcSerialCom);
                 pcSerialComCodeCompleteWrite(false);
                 if ( codeIsCorrect ) {
-                    codeDeactivate();
+                    codeDeactivateAlarm();
                     pcSerialComStringWrite( "\r\nThe code is correct\r\n\r\n" );
                 } else {
                     incorrectCodeStateWrite(ON);
-                    numberOfIncorrectCodes++;
+                    numberOfIncorrectCodesAlarm++;
                     pcSerialComStringWrite( "\r\nThe code is incorrect\r\n\r\n" );
                 }
             }
@@ -80,7 +99,7 @@ bool codeMatchFrom( codeOrigin_t codeOrigin )
         break;
     }
 
-    if ( numberOfIncorrectCodes >= 5 ) {
+    if ( numberOfIncorrectCodesAlarm >= 3 ) {
         systemBlockedStateWrite(ON);
     }
 
@@ -89,20 +108,31 @@ bool codeMatchFrom( codeOrigin_t codeOrigin )
 
 //=====[Implementations of private functions]==================================
 
-static bool codeMatch( char* codeToCompare )
+static bool codeMatchAlarm( char* codeToCompare )
 {
     int i;
     for (i = 0; i < CODE_NUMBER_OF_KEYS; i++) {
-        if ( codeSequence[i] != codeToCompare[i] ) {
+        if ( codeSequenceAlarm[i] != codeToCompare[i] ) {
             return false;
         }
     }
     return true;
 }
 
-static void codeDeactivate()
+static bool codeMatchGate( char* codeToCompare )
+{
+    int i;
+    for (i = 0; i < CODE_NUMBER_OF_KEYS; i++) {
+        if ( codeSequenceGate[i] != codeToCompare[i] ) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void codeDeactivateAlarm()
 {
     systemBlockedStateWrite(OFF);
     incorrectCodeStateWrite(OFF);
-    numberOfIncorrectCodes = 0;
+    numberOfIncorrectCodesAlarm = 0;
 }

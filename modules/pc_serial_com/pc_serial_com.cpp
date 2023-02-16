@@ -59,6 +59,7 @@ static void commandShowCurrentTemperatureInFahrenheit();
 static void commandSetDateAndTime();
 static void commandShowDateAndTime();
 static void commandShowStoredEvents();
+static void showGateCode();
 
 //=====[Implementations of public functions]===================================
 
@@ -166,8 +167,14 @@ static void pcSerialComCommandUpdate( char receivedChar )
         case 's': case 'S': commandSetDateAndTime(); break;
         case 't': case 'T': commandShowDateAndTime(); break;
         case 'e': case 'E': commandShowStoredEvents(); break;
+        case '6': showGateCode(); break;
         default: availableCommands(); break;
     } 
+}
+
+static void showGateCode()
+{
+    pcSerialComStringWrite( "The gate code is '1111'.\r\n" );
 }
 
 static void availableCommands()
@@ -178,6 +185,7 @@ static void availableCommands()
     pcSerialComStringWrite( "Press '3' to get the over temperature detector state\r\n" );
     pcSerialComStringWrite( "Press '4' to enter the code to deactivate the alarm\r\n" );
     pcSerialComStringWrite( "Press '5' to enter a new code to deactivate the alarm\r\n" );
+    pcSerialComStringWrite( "Press '6' to reveal gate passcode\r\n" );
     pcSerialComStringWrite( "Press 'f' or 'F' to get lm35 reading in Fahrenheit\r\n" );
     pcSerialComStringWrite( "Press 'c' or 'C' to get lm35 reading in Celsius\r\n" );
     pcSerialComStringWrite( "Press 's' or 'S' to set the date and time\r\n" );

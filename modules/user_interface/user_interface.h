@@ -13,6 +13,7 @@ void userInterfaceInit();
 void userInterfaceUpdate();
 bool userInterfaceCodeCompleteRead();
 void userInterfaceCodeCompleteWrite( bool state );
+void resetScreen();
 
 bool incorrectCodeStateRead();
 void incorrectCodeStateWrite( bool state );

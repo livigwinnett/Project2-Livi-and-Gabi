@@ -28,9 +28,10 @@ DigitalOut systemBlockedLed(LED2);
 
 //=====[Declaration of external public global variables]=======================
 
-//=====[Declaration and initialization of public global variables]=============
-
 char codeSequenceFromUserInterface[CODE_NUMBER_OF_KEYS];
+
+
+//=====[Declaration and initialization of public global variables]=============
 
 //=====[Declaration and initialization of private global variables]============
 
@@ -47,7 +48,7 @@ static void incorrectCodeIndicatorUpdate();
 static void systemBlockedIndicatorUpdate();
 
 static void userInterfaceDisplayInit();
-static void userInterfaceDisplayUpdate();
+//static void userInterfaceDisplayUpdate();
 
 //=====[Implementations of public functions]===================================
 
@@ -59,12 +60,20 @@ void userInterfaceInit()
     userInterfaceDisplayInit();
 }
 
+void resetScreen()
+{
+    displayInit();
+     
+    displayCharPositionWrite ( 0,0 );
+    displayStringWrite( "Code:" );
+}
+
 void userInterfaceUpdate()
 {
     userInterfaceMatrixKeypadUpdate();
     incorrectCodeIndicatorUpdate();
     systemBlockedIndicatorUpdate();
-    userInterfaceDisplayUpdate();
+    codeMatchFrom(CODE_KEYPAD);
 }
 
 bool incorrectCodeStateRead()
@@ -106,12 +115,14 @@ static void userInterfaceMatrixKeypadUpdate()
 
     if( keyReleased != '\0' ) {
 
-        if( sirenStateRead() && !systemBlockedStateRead() ) {
+        if( !systemBlockedStateRead() ) {
             if( !incorrectCodeStateRead() ) {
                 codeSequenceFromUserInterface[numberOfCodeChars] = keyReleased;
+                displayCharPositionWrite (5,0);
+                displayStringWrite(codeSequenceFromUserInterface);
                 numberOfCodeChars++;
                 if ( numberOfCodeChars >= CODE_NUMBER_OF_KEYS ) {
-                    codeComplete = true;
+                    userInterfaceCodeCompleteWrite(true);
                     numberOfCodeChars = 0;
                 }
             } else {
@@ -120,7 +131,7 @@ static void userInterfaceMatrixKeypadUpdate()
                     if( numberOfHashKeyReleased >= 2 ) {
                         numberOfHashKeyReleased = 0;
                         numberOfCodeChars = 0;
-                        codeComplete = false;
+                        userInterfaceCodeCompleteWrite(false);
                         incorrectCodeState = OFF;
                     }
                 }
@@ -134,51 +145,7 @@ static void userInterfaceDisplayInit()
     displayInit();
      
     displayCharPositionWrite ( 0,0 );
-    displayStringWrite( "Tmp:" );
-
-    displayCharPositionWrite ( 9,0 );
-    displayStringWrite( "Gas:" );
-    
-    displayCharPositionWrite ( 0,1 );
-    displayStringWrite( "Alarm:" );
-}
-
-static void userInterfaceDisplayUpdate()
-{
-    static int accumulatedDisplayTime = 0;
-    char temperatureString[3] = "";
-    
-    if( accumulatedDisplayTime >=
-        DISPLAY_REFRESH_TIME_MS ) {
-
-        accumulatedDisplayTime = 0;
-
-        sprintf(temperatureString, "%.0f", temperatureSensorReadCelsius());
-        displayCharPositionWrite ( 4,0 );
-        displayStringWrite( temperatureString );
-        displayCharPositionWrite ( 6,0 );
-        displayStringWrite( "'C" );
-
-        displayCharPositionWrite ( 13,0 );
-
-        if ( gasDetectorStateRead() ) {
-            displayStringWrite( "D    " );
-        } else {
-            displayStringWrite( "ND" );
-        }
-
-        displayCharPositionWrite ( 6,1 );
-        
-        if ( sirenStateRead() ) {
-            displayStringWrite( "ON " );
-        } else {
-            displayStringWrite( "OFF" );
-        }
-
-    } else {
-        accumulatedDisplayTime =
-            accumulatedDisplayTime + SYSTEM_TIME_INCREMENT_MS;        
-    } 
+    displayStringWrite( "Code:" );
 }
 
 static void incorrectCodeIndicatorUpdate()
